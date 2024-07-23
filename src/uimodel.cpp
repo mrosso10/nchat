@@ -33,6 +33,7 @@
 #include "uimessagedialog.h"
 #include "uitextinputdialog.h"
 #include "uiview.h"
+#include <unistd.h>
 
 const std::pair<std::string, std::string> UiModel::s_ChatNone;
 
@@ -3217,36 +3218,82 @@ void UiModel::ExternalSpell()
     std::string spellCheckCommand = UiConfig::GetStr("spell_check_command");
     if (spellCheckCommand.empty())
     {
-      const std::string& commandOutPath = FileUtil::MkTempFile();
-      const std::string& whichCommand =
-        std::string("which aspell ispell 2> /dev/null | head -1 > ") + commandOutPath;
-
-      if (system(whichCommand.c_str()) == 0)
-      {
-        std::string output = FileUtil::ReadFile(commandOutPath);
-        output.erase(std::remove(output.begin(), output.end(), '\n'), output.end());
-        if (!output.empty())
-        {
-          if (output.find("/aspell") != std::string::npos)
-          {
-            spellCheckCommand = "aspell -c";
-          }
-          else if (output.find("/ispell") != std::string::npos)
-          {
-            spellCheckCommand = "ispell -o -x";
-          }
-        }
-      }
-
-      FileUtil::RmFile(commandOutPath);
+      spellCheckCommand = "systemd-run --scope -p CPUQuota=20% -p MemoryMax=500M whisper --output_format txt --language es ";
     }
+    // MemoryMax=2G
 
     return spellCheckCommand;
   }();
 
   if (!cmd.empty())
   {
-    CallExternalEdit(cmd);
+    if (!GetSelectMessageActive() || GetEditMessageActive()) return;
+
+    
+
+    const std::string profileId = m_CurrentChat.first;
+    const std::string chatId = m_CurrentChat.second;
+    const std::vector<std::string>& messageVec = m_MessageVec[profileId][chatId];
+    const int messageOffset = m_MessageOffset[profileId][chatId];
+    auto it = std::next(messageVec.begin(), messageOffset);
+    if (it == messageVec.end()) return;
+
+    const std::string messageId = *it;
+    const std::unordered_map<std::string, ChatMessage>& messages = m_Messages[profileId][chatId];
+    const ChatMessage& msg = messages.at(messageId);
+
+
+    if (!msg.fileInfo.empty())
+    {
+      FileInfo fileInfo = ProtocolUtil::FileInfoFromHex(msg.fileInfo);
+      std::string fileName = FileUtil::BaseName(fileInfo.filePath);
+      if (fileInfo.fileStatus == FileStatusDownloaded)
+      {
+        std::string str = fileInfo.filePath;
+        std::string oldStr = ".ogg";
+        std::string newStr = ".txt";
+        // TODO: no correr si existe el txt
+
+        size_t pos = str.find(oldStr);
+        if(pos == std::string::npos) {
+           pos = str.find(".oga");
+        }
+        if (pos != std::string::npos) {
+           
+          const std::string trueCmd = cmd + " --output_dir " + FileUtil::DirName(fileInfo.filePath) + " " + str + " 2> /dev/null > /dev/null";
+          int pid = getpid();
+          LOG_INFO("my pid is: %i", pid);
+          int newpid = fork();
+          if (newpid) {
+            LOG_INFO("soy el padre el pid de mi hijo es: %i", newpid);
+            pid = getpid();
+            LOG_INFO("padre: my pid is: %i", pid);
+          } else {
+            pid = getpid();
+            LOG_INFO("hijo: my pid is: %i", pid);
+            LOG_INFO("launching translator: %s", trueCmd.c_str());
+            system("notify-send 'nchat: started whisper'");
+            int rv = system(trueCmd.c_str());
+            if (rv == 0)
+            {
+              system("notify-send 'nchat: whisper finished ok'");
+              LOG_DEBUG("translator exited successfully");
+            }
+            else
+            {
+              system("notify-send 'nchat: whisper failed'");
+              LOG_WARNING("translator exited with %d", rv);
+            }
+            std::exit(0);
+          }
+        }
+      }
+    }
+
+    // endwin();
+    // std::string tempPath = FileUtil::GetApplicationDir() + "/tmpview.txt";
+    // FileUtil::WriteFile(tempPath, chatMessage.text);
+
   }
 }
 
