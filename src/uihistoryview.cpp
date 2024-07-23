@@ -17,6 +17,10 @@
 #include "uicolorconfig.h"
 #include "uiconfig.h"
 #include "uimodel.h"
+#include <iostream>
+#include <string>
+#include <locale>
+#include <codecvt>
 
 UiHistoryView::UiHistoryView(const UiViewParams& p_Params)
   : UiViewBase(p_Params)
@@ -208,6 +212,32 @@ void UiHistoryView::Draw()
       {
         static const std::string statusDownloaded = "";
         fileStatus = statusDownloaded;
+
+        std::string str = fileInfo.filePath;
+        std::string oldStr = ".ogg";
+        std::string newStr = ".txt";
+
+        size_t pos = str.find(oldStr);
+        if(pos == std::string::npos) {
+           pos = str.find(".oga");
+        }
+        if (pos != std::string::npos) {
+          str.replace(pos, oldStr.length(), newStr);
+          if (FileUtil::Exists(str))
+          {
+            std::string filesStr = FileUtil::ReadFile(str);
+            std::wstring contenido = StrUtil::ToWString(filesStr);
+            std::vector<std::wstring> wrapped = StrUtil::WordWrap(contenido, m_PaddedW, false, false, false, 2);
+            for (auto miline = wrapped.rbegin(); miline != wrapped.rend(); ++miline)
+            {
+              wlines.insert(wlines.begin(), *miline);
+            }
+          }
+
+        }
+
+
+
       }
       else if (fileInfo.fileStatus == FileStatusDownloading)
       {
