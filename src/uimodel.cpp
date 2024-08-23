@@ -11,6 +11,7 @@
 
 #include <ncurses.h>
 
+#include "apputil.h"
 #include "appconfig.h"
 #include "apputil.h"
 #include "clipboard.h"
@@ -39,6 +40,10 @@
 // ---------------------------------------------------------------------
 // UiModel::Impl
 // ---------------------------------------------------------------------
+#include <fstream>
+#include <iostream>
+
+const std::pair<std::string, std::string> UiModel::s_ChatNone;
 
 const std::pair<std::string, std::string> UiModel::Impl::s_ChatNone;
 
@@ -2123,7 +2128,8 @@ int64_t UiModel::Impl::GetLastMessageTime(const std::string& p_ProfileId, const 
 bool UiModel::Impl::GetChatIsUnread(const std::string& p_ProfileId, const std::string& p_ChatId)
 {
   const ChatInfo& chatInfo = m_ChatInfos[p_ProfileId][p_ChatId];
-  static const bool mutedIndicateUnread = UiConfig::GetBool("muted_indicate_unread");
+  static const bool mutedIndicateUnread = UiConfig::GetBool("muted_indicate_unread") ||
+                                            AppUtil::GetForceShowMutedChats();
   const bool indicateUnread = chatInfo.isUnread && (mutedIndicateUnread || !chatInfo.isMuted);
   return indicateUnread; // @todo: handle isUnreadMention
 }
@@ -3647,10 +3653,46 @@ void UiModel::Impl::PerformForwardMessage(const std::pair<std::string, std::stri
   SetSelectMessageActive(false);
 }
 
+bool isStringInFile(const std::string& filename, const std::string& searchString) {
+    std::ifstream file(filename); // Open the file
+
+    // Check if the file was opened successfully
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open the file " << filename << std::endl;
+        return false;
+    }
+
+    std::string line;
+    // Read the file line by line
+    while (std::getline(file, line)) {
+        // Check if the current line matches the search string
+        if (line == searchString) {
+            file.close(); // Close the file before returning
+            return true;  // Match found
+        }
+    }
+
+    file.close(); // Close the file
+    return false; // No match found
+}
+
 bool UiModel::Impl::IsChatForceHidden(const std::string& p_ChatId)
 {
   static const bool statusBroadcastHidden = (UiConfig::GetNum("status_broadcast") == 0);
-  return statusBroadcastHidden && (p_ChatId == "status@broadcast");
+
+  std::string filepath = FileUtil::GetApplicationDir() + std::string("/blocked_chats.conf");
+  return statusBroadcastHidden && (
+            // Siempre ocultos
+           p_ChatId == "status@broadcast"
+         ) ||
+           // Se muestran con -aa
+           (!AppUtil::GetForceShowHiddenChats() && isStringInFile(filepath, p_ChatId));
+         //     p_ChatId == "5492983400671-1478691547@g.us" // Grupo
+         //     || p_ChatId == "573156465953@s.whatsapp.net" // Soy
+         //     || p_ChatId == "5491158396035@s.whatsapp.net" // Daniel Lomas
+         // || p_ChatId == "5491141447276@s.whatsapp.net" // Mónica
+         // )
+         // );
 }
 
 bool UiModel::Impl::IsChatForceMuted(const std::string& p_ChatId)
