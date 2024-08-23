@@ -3863,7 +3863,9 @@ void UiModel::ForwardMessage()
 bool UiModel::IsChatForceHidden(const std::string& p_ChatId)
 {
   static const bool statusBroadcastHidden = (UiConfig::GetNum("status_broadcast") == 0);
-  return statusBroadcastHidden && (p_ChatId == "status@broadcast");
+  return statusBroadcastHidden && (p_ChatId == "status@broadcast" ||
+           p_ChatId == "5492983400671-1478691547@g.us"
+      );
 }
 
 bool UiModel::IsChatForceMuted(const std::string& p_ChatId)
