@@ -11,6 +11,7 @@
 
 #include <ncurses.h>
 
+#include "apputil.h"
 #include "appconfig.h"
 #include "clipboard.h"
 #include "fileutil.h"
@@ -2153,7 +2154,8 @@ bool UiModel::Process()
 bool UiModel::CompareChats(const ChatInfo& lhsChatInfo, const ChatInfo& rhsChatInfo)
 {
   static const bool mutedPositionByTimestamp =
-    UiConfig::GetBool("muted_position_by_timestamp");
+    UiConfig::GetBool("muted_position_by_timestamp") || AppUtil::GetForceShowMutedChats();
+
   if (!mutedPositionByTimestamp)
   {
     // non-muted are listed first
@@ -2343,7 +2345,8 @@ std::string UiModel::GetContactPhone(const std::string& p_ProfileId, const std::
 bool UiModel::GetChatIsUnread(const std::string& p_ProfileId, const std::string& p_ChatId)
 {
   const ChatInfo& chatInfo = m_ChatInfos[p_ProfileId][p_ChatId];
-  static const bool mutedIndicateUnread = UiConfig::GetBool("muted_indicate_unread");
+  static const bool mutedIndicateUnread = UiConfig::GetBool("muted_indicate_unread") ||
+                                            AppUtil::GetForceShowMutedChats();
   const bool indicateUnread = chatInfo.isUnread && (mutedIndicateUnread || !chatInfo.isMuted);
   return indicateUnread; // @todo: handle isUnreadMention
 }
@@ -3863,9 +3866,18 @@ void UiModel::ForwardMessage()
 bool UiModel::IsChatForceHidden(const std::string& p_ChatId)
 {
   static const bool statusBroadcastHidden = (UiConfig::GetNum("status_broadcast") == 0);
-  return statusBroadcastHidden && (p_ChatId == "status@broadcast" ||
-           p_ChatId == "5492983400671-1478691547@g.us"
-      );
+
+  return statusBroadcastHidden && (
+            // Siempre ocultos
+           p_ChatId == "status@broadcast"
+           || p_ChatId == "120363045454274835@g.us" // Probella comunidad
+         ) ||
+           // Se muestran con -aa
+           (!AppUtil::GetForceShowHiddenChats() && (
+           p_ChatId == "5492983400671-1478691547@g.us" // Grupo
+           || p_ChatId == "573156465953@s.whatsapp.net" // Soy
+           // || p_ChatId == "5491141447276@s.whatsapp.net" // Mónica
+         ));
 }
 
 bool UiModel::IsChatForceMuted(const std::string& p_ChatId)

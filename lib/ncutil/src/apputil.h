@@ -16,10 +16,16 @@ public:
   static std::string GetAppVersion();
   static void SetDeveloperMode(bool p_DeveloperMode);
   static bool GetDeveloperMode();
+  static void SetForceShowMutedChats(bool p_ForceShowMutedChats);
+  static bool GetForceShowMutedChats();
+  static void SetForceShowHiddenChats(bool p_ForceShowHiddenChats);
+  static bool GetForceShowHiddenChats();
   static void InitCoredump();
   static void InitSignalHandler();
   static void SignalHandler(int p_Signal);
 
 private:
   static bool m_DeveloperMode;
+  static bool m_ForceShowMutedChats;
+  static bool m_ForceShowHiddenChats;
 };

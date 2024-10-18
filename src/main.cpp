@@ -150,6 +150,15 @@ int main(int argc, char* argv[])
     {
       Log::SetVerboseLevel(Log::DEBUG_LEVEL);
     }
+    else if (*it == "-a")
+    {
+      AppUtil::SetForceShowMutedChats(true);
+    }
+    else if (*it == "-aa")
+    {
+      AppUtil::SetForceShowMutedChats(true);
+      AppUtil::SetForceShowHiddenChats(true);
+    }
     else if ((*it == "-ee") || (*it == "--extra-verbose"))
     {
       Log::SetVerboseLevel(Log::TRACE_LEVEL);

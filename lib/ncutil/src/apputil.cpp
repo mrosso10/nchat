@@ -22,6 +22,8 @@
 #include "version.h"
 
 bool AppUtil::m_DeveloperMode = false;
+bool AppUtil::m_ForceShowMutedChats = false;
+bool AppUtil::m_ForceShowHiddenChats = false;
 
 std::string AppUtil::GetAppName(bool p_WithVersion)
 {
@@ -42,6 +44,26 @@ void AppUtil::SetDeveloperMode(bool p_DeveloperMode)
 bool AppUtil::GetDeveloperMode()
 {
   return m_DeveloperMode;
+}
+
+void AppUtil::SetForceShowMutedChats(bool p_ForceShowMutedChats)
+{
+  m_ForceShowMutedChats = p_ForceShowMutedChats;
+}
+
+bool AppUtil::GetForceShowMutedChats()
+{
+  return m_ForceShowMutedChats;
+}
+
+void AppUtil::SetForceShowHiddenChats(bool p_ForceShowHiddenChats)
+{
+  m_ForceShowHiddenChats = p_ForceShowHiddenChats;
+}
+
+bool AppUtil::GetForceShowHiddenChats()
+{
+  return m_ForceShowHiddenChats;
 }
 
 void AppUtil::InitCoredump()
