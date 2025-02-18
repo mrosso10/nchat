@@ -1933,7 +1933,9 @@ bool UiModel::Impl::Process()
 
 void UiModel::Impl::SortChats()
 {
-  static const bool mutedPositionByTimestamp = UiConfig::GetBool("muted_position_by_timestamp");
+
+  static const bool mutedPositionByTimestamp = UiConfig::GetBool("muted_position_by_timestamp") ||
+                                                 AppUtil::GetForceShowMutedChats();
   std::sort(m_ChatVec.begin(), m_ChatVec.end(),
             [&](const std::pair<std::string, std::string>& lhs, const std::pair<std::string, std::string>& rhs) -> bool
   {
