@@ -1393,7 +1393,7 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
           for (auto& chatInfo : newChatsNotify->chatInfos)
           {
             LOG_TRACE("new chats %s", chatInfo.id.c_str());
-            if (IsChatForceHidden(chatInfo.id)) continue;
+            if (IsChatForceHidden(std::string(profileId), chatInfo.id)) continue;
 
             if (IsChatForceMuted(chatInfo.id))
             {
@@ -1426,7 +1426,7 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
         {
           bool hasNewMessage = false;
           const std::string& chatId = newMessagesNotify->chatId;
-          if (IsChatForceHidden(chatId)) return;
+          if (IsChatForceHidden(std::string(profileId), chatId)) return;
 
           std::unordered_map<std::string, ChatMessage>& messages = m_Messages[profileId][chatId];
           std::vector<std::string>& messageVec = m_MessageVec[profileId][chatId];
@@ -3676,17 +3676,21 @@ bool isStringInFile(const std::string& filename, const std::string& searchString
     return false; // No match found
 }
 
-bool UiModel::Impl::IsChatForceHidden(const std::string& p_ChatId)
+bool UiModel::Impl::IsChatForceHidden(const std::string& p_ProfileId, const std::string& p_ChatId)
 {
   static const bool statusBroadcastHidden = (UiConfig::GetNum("status_broadcast") == 0);
 
   std::string filepath = FileUtil::GetApplicationDir() + std::string("/blocked_chats.conf");
+
+  const std::string phone = GetContactPhone(p_ProfileId, p_ChatId);
+
   return statusBroadcastHidden && (
             // Siempre ocultos
            p_ChatId == "status@broadcast"
          ) ||
            // Se muestran con -aa
-           (!AppUtil::GetForceShowHiddenChats() && isStringInFile(filepath, p_ChatId));
+           (!AppUtil::GetForceShowHiddenChats() &&
+              (isStringInFile(filepath, p_ChatId) || phone.empty()));
          //     p_ChatId == "5492983400671-1478691547@g.us" // Grupo
          //     || p_ChatId == "573156465953@s.whatsapp.net" // Soy
          //     || p_ChatId == "5491158396035@s.whatsapp.net" // Daniel Lomas

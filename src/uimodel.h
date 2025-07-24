@@ -204,7 +204,7 @@ private:
     void EntryConvertEmojiEnabled();
     void SetProtocolUiControl(const std::string& p_ProfileId, bool& p_IsTakeControl);
     void PerformFindNext(const std::string& p_FindText);
-    bool IsChatForceHidden(const std::string& p_ChatId);
+    bool IsChatForceHidden(const std::string& p_ProfileId, const std::string& p_ChatId);
     bool IsChatForceMuted(const std::string& p_ChatId);
     void AddQuoteFromSelectedMessage(ChatMessage& p_ChatMessage);
 
