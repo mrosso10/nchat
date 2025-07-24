@@ -43,8 +43,6 @@
 #include <fstream>
 #include <iostream>
 
-const std::pair<std::string, std::string> UiModel::s_ChatNone;
-
 const std::pair<std::string, std::string> UiModel::Impl::s_ChatNone;
 
 UiModel::Impl::Impl(UiModel* p_UiModel)
