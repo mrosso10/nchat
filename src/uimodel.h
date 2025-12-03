@@ -57,6 +57,7 @@ private:
     void HomeFetchNext(const std::string& p_ProfileId, const std::string& p_ChatId, int p_MsgCount);
     void MarkRead(const std::string& p_ProfileId, const std::string& p_ChatId, const std::string& p_MsgId,
                   bool p_WasUnread);
+    void OnStatusUpdate(uint32_t p_Status);
     void DownloadAttachment(const std::string& p_ProfileId, const std::string& p_ChatId, const std::string& p_MsgId,
                             const std::string& p_FileId, DownloadFileAction p_DownloadFileAction);
     void OnKeyDeleteMsg();
@@ -80,13 +81,14 @@ private:
     void AddProtocol(std::shared_ptr<Protocol> p_Protocol);
     std::unordered_map<std::string, std::shared_ptr<Protocol>> GetProtocols();
     bool Process();
+    void ProcessTimers();
 
     std::string GetLastMessageId(const std::string& p_ProfileId, const std::string& p_ChatId);
     void UpdateChatInfoLastMessageTime(const std::string& p_ProfileId, const std::string& p_ChatId);
     void UpdateChatInfoIsUnread(const std::string& p_ProfileId, const std::string& p_ChatId);
     std::string GetContactName(const std::string& p_ProfileId, const std::string& p_ChatId);
-    std::string GetContactListName(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId);
-    std::string GetContactListNameLock(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId);
+    std::string GetContactNameIncludingSelf(const std::string& p_ProfileId, const std::string& p_ChatId);
+    std::string GetContactListName(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId, bool p_AllowAlias);
     std::string GetContactPhone(const std::string& p_ProfileId, const std::string& p_ChatId);
     int64_t GetLastMessageTime(const std::string& p_ProfileId, const std::string& p_ChatId);
     bool GetChatIsUnread(const std::string& p_ProfileId, const std::string& p_ChatId);
@@ -100,6 +102,7 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, ContactInfo>> GetContactInfos();
     int64_t GetContactInfosUpdateTime();
     std::pair<std::string, std::string>& GetCurrentChat();
+    bool IsCurrentChat(const std::string& p_ProfileId, const std::string& p_ChatId);
     int& GetCurrentChatIndex();
 
     std::unordered_map<std::string, ChatMessage>& GetMessages(const std::string& p_ProfileId,
@@ -118,6 +121,9 @@ private:
 
     bool GetListDialogActive();
     void SetListDialogActive(bool p_ListDialogActive);
+
+    bool GetFileListDialogActive();
+    void SetFileListDialogActive(bool p_FileListDialogActive);
 
     bool GetMessageDialogActive();
     void SetMessageDialogActive(bool p_MessageDialogActive);
@@ -145,9 +151,9 @@ private:
 
     void OnKeyQuit();
     void OnKeyExtEdit();
-    void OnKeyCut();
-    void OnKeyCopy();
-    void OnKeyPaste();
+    void Cut();
+    void Copy();
+    void Paste();
     void OnKeyCancel();
     bool PreEditMsg(std::string& p_ProfileId, std::string& p_ChatId, std::string& p_MsgId,
                     std::string& p_MsgDialogText);
@@ -168,6 +174,7 @@ private:
     bool IsProtocolUiControlActive();
     void HandleProtocolUiControlStart();
     void HandleProtocolUiControlEnd();
+    bool AutoCompose();
 
     static bool IsAttachmentDownloaded(const FileInfo& p_FileInfo);
     static bool IsAttachmentDownloadable(const FileInfo& p_FileInfo);
@@ -189,8 +196,9 @@ private:
     void UpdateHistory();
     void UpdateEntry();
     void ResetMessageOffset();
-    void SetCurrentChatIndexIfNotSet();
-    void DesktopNotifyUnread(const std::string& p_Name, const std::string& p_Text);
+    bool IsCurrentChatSet();
+    bool SetCurrentChatIndexIfNotSet();
+    void DesktopNotify(const std::string& p_Name, const std::string& p_Text);
     void SetHistoryInteraction(bool p_HistoryInteraction);
     std::string GetSelectedMessageText();
     void Clear();
@@ -200,6 +208,7 @@ private:
     const std::pair<std::string, std::string>& GetNextChat();
     void SendProtocolRequest(const std::string& p_ProfileId, std::shared_ptr<RequestMessage> p_Request);
     bool HasProtocolFeature(const std::string& p_ProfileId, ProtocolFeature p_ProtocolFeature);
+    std::string GetSelfId(const std::string& p_ProfileId);
     void Quit();
     void EntryConvertEmojiEnabled();
     void SetProtocolUiControl(const std::string& p_ProfileId, bool& p_IsTakeControl);
@@ -220,6 +229,7 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, ContactInfo>> m_ContactInfos;
     int64_t m_ContactInfosUpdateTime = 0;
     std::unordered_map<std::string, int64_t> m_ConnectTime;
+    int64_t m_LastSyncMessageTime = 0;
 
     std::pair<std::string, std::string> m_CurrentChat;
     int m_CurrentChatIndex = -1;
@@ -252,6 +262,7 @@ private:
 
     bool m_SelectMessageActive = false;
     bool m_ListDialogActive = false;
+    bool m_FileListDialogActive = false;
     bool m_MessageDialogActive = false;
     bool m_EditMessageActive = false;
     bool m_FindMessageActive = false;
@@ -286,7 +297,7 @@ public:
 
   void GetAvailableEmojis(std::set<std::string>& p_AvailableEmojis, bool& p_Pending);
   std::vector<std::pair<std::string, std::string>> GetChatVec();
-  std::string GetContactListName(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId);
+  std::string GetContactListName(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId, bool p_AllowAlias);
   std::unordered_map<std::string, std::unordered_map<std::string, ContactInfo>> GetContactInfos();
   std::string GetProfileDisplayName(const std::string& p_ProfileId);
 
@@ -296,6 +307,7 @@ public:
   void SetHelpOffset(int p_HelpOffset);
   void SetMessageDialogActive(bool p_MessageDialogActive);
   void SetListDialogActive(bool p_ListDialogActive);
+  void SetFileListDialogActive(bool p_FileListDialogActive);
   void SetStatusOnline(const std::string& p_ProfileId, bool p_IsOnline);
   void SetTerminalActive(bool p_TerminalActive);
 
@@ -303,7 +315,7 @@ public:
   bool GetChatIsUnreadLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::string GetChatStatusLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::vector<std::pair<std::string, std::string>>& GetChatVecLocked();
-  std::string GetContactListNameLocked(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId);
+  std::string GetContactListNameLocked(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId, bool p_AllowAlias);
   std::string GetContactNameLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::string GetContactPhoneLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   int GetCurrentChatIndexLocked();
@@ -315,6 +327,7 @@ public:
   int GetHelpOffsetLocked();
   int64_t GetLastMessageTimeLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   bool GetListDialogActiveLocked();
+  bool GetFileListDialogActiveLocked();
   bool GetMessageDialogActiveLocked();
   int GetMessageOffsetLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::unordered_map<std::string, ChatMessage>& GetMessagesLocked(const std::string& p_ProfileId,
@@ -330,6 +343,7 @@ public:
   bool IsMultipleProfilesLocked();
   void MarkReadLocked(const std::string& p_ProfileId, const std::string& p_ChatId, const std::string& p_MsgId,
                       bool p_WasUnread);
+  void OnStatusUpdateLocked(uint32_t p_Status);
 
   // Static methods
   static bool IsAttachmentDownloaded(const FileInfo& p_FileInfo);
@@ -363,6 +377,10 @@ private:
   void OnKeyEditMsg();
   void OnKeyQuit();
   void OnKeyExtCall();
+  void OnKeyAutoCompose();
+  void OnKeyCut();
+  void OnKeyCopy();
+  void OnKeyPaste();
 
 private:
   Impl m_Impl;

@@ -42,6 +42,11 @@ bool DuChat::HasFeature(ProtocolFeature p_ProtocolFeature) const
   return (p_ProtocolFeature & customFeatures);
 }
 
+std::string DuChat::GetSelfId() const
+{
+  return "Stanley_0";
+}
+
 std::string DuChat::GetProfileDisplayName() const
 {
   static std::string profileDisplayName = "";
@@ -78,7 +83,7 @@ bool DuChat::CloseProfile()
 
 bool DuChat::Login()
 {
-  Status::Set(Status::FlagOnline);
+  Status::Set(m_ProfileId, Status::FlagOnline);
 
   if (!m_Running)
   {
@@ -99,7 +104,7 @@ bool DuChat::Login()
 
 bool DuChat::Logout()
 {
-  Status::Clear(Status::FlagOnline);
+  Status::Clear(m_ProfileId, Status::FlagOnline);
 
   if (m_Running)
   {
@@ -280,10 +285,12 @@ void DuChat::PerformRequest(std::shared_ptr<RequestMessage> p_RequestMessage)
           std::string name = message.first;
           std::string text = message.second;
           std::string id = name + "_0";
+          bool isUnread = false;
 
           ChatInfo chatInfo;
           chatInfo.id = id;
           chatInfo.lastMessageTime = (t * 1000);
+          chatInfo.isUnread = isUnread;
           newChatsNotify->chatInfos.push_back(chatInfo);
 
           ContactInfo contactInfo;
@@ -297,7 +304,7 @@ void DuChat::PerformRequest(std::shared_ptr<RequestMessage> p_RequestMessage)
           chatMessage.text = text;
           chatMessage.timeSent = (t * 1000);
           chatMessage.isOutgoing = false;
-          chatMessage.isRead = true;
+          chatMessage.isRead = !isUnread;
           t = t - 100;
           s_Messages[id].push_back(chatMessage);
         }

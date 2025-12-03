@@ -18,6 +18,7 @@
 
 #include "appconfig.h"
 #include "apputil.h"
+#include "debuginfo.h"
 #include "fileutil.h"
 #include "log.h"
 #include "messagecache.h"
@@ -282,6 +283,14 @@ int main(int argc, char* argv[])
   FileUtil::SetDownloadsDir(AppConfig::GetStr("downloads_dir"));
   static const bool isLogdumpEnabled = AppConfig::GetBool("logdump_enabled");
 
+  // Init debug info, log last version
+  DebugInfo::Init();
+  const std::string versionUsed = DebugInfo::GetStr("version_used");
+  if (!versionUsed.empty() && (versionUsed != AppUtil::GetAppVersion()))
+  {
+    LOG_INFO("last version %s", versionUsed.c_str());
+  }
+
   // Init core dump
   static const bool isCoredumpEnabled = AppConfig::GetBool("coredump_enabled");
   if (isCoredumpEnabled)
@@ -304,10 +313,14 @@ int main(int argc, char* argv[])
     if (!setupProtocol)
     {
       MessageCache::Cleanup();
+      DebugInfo::Cleanup();
       AppConfig::Cleanup();
       return 1;
     }
   }
+
+  // Init temp
+  FileUtil::InitTempDir();
 
   // Init ui
   std::shared_ptr<Ui> ui = std::make_shared<Ui>();
@@ -390,8 +403,13 @@ int main(int argc, char* argv[])
     // Sort protocols
     std::map<std::string, std::shared_ptr<Protocol>> protocolsSorted(protocols.begin(), protocols.end());
 
+    // Connecting status
+    for (auto& protocol : protocolsSorted)
+    {
+      Status::Set(protocol.first, Status::FlagConnecting);
+    }
+
     // Login
-    Status::Set(Status::FlagConnecting);
     std::thread loginThread([&]
     {
       for (auto& protocol : protocolsSorted)
@@ -431,8 +449,13 @@ int main(int argc, char* argv[])
     MessageCache::Export(exportDir);
   }
 
+  // Save last version
+  DebugInfo::SetStr("version_used", AppUtil::GetAppVersion());
+
   // Cleanup
+  FileUtil::CleanupTempDir();
   MessageCache::Cleanup();
+  DebugInfo::Cleanup();
   AppConfig::Cleanup();
   Profiles::Cleanup();
 
@@ -455,15 +478,15 @@ std::string GetFeatures()
 {
   std::string features =
 #if defined(HAS_TELEGRAM)
-    "Telegram ON, "
+    "telegram on, "
 #else
-    "Telegram OFF, "
+    "telegram off, "
 #endif
 
 #if defined(HAS_WHATSAPP)
-    "WhatsApp ON"
+    "whatsapp on"
 #else
-    "WhatsApp OFF"
+    "whatsapp off"
 #endif
   ;
 
@@ -630,6 +653,7 @@ void ShowHelp()
     "    KeyUp       select message\n"
     "    Alt-d       delete/leave current chat\n"
     "    Alt-e       external editor compose\n"
+    "    Alt-i       auto-compose reply\n"
     "    Alt-n       search contacts\n"
     "    Alt-t       external telephone call\n"
     "    Alt-/       find in chat\n"
