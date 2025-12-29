@@ -3817,8 +3817,8 @@ bool UiModel::Impl::IsChatForceHidden(const std::string& p_ProfileId, const std:
 {
   static const bool statusBroadcastHidden = (UiConfig::GetNum("status_broadcast") == 0);
 
-  std::string filepath = FileUtil::GetApplicationDir() + std::string("/blocked_chats.conf");
-  std::string filepath_allowed = FileUtil::GetApplicationDir() + std::string("/allowed_chats.conf");
+  std::string filepath_blk = FileUtil::GetApplicationDir() + std::string("/blocked_chats.conf");
+  std::string filepath_allow = FileUtil::GetApplicationDir() + std::string("/allowed_chats.conf");
 
   const std::string phone = GetContactPhone(p_ProfileId, p_ChatId);
 
@@ -3827,14 +3827,19 @@ bool UiModel::Impl::IsChatForceHidden(const std::string& p_ProfileId, const std:
            p_ChatId == "status@broadcast"
          ) ||
            // Se muestran con -aa
-           (!AppUtil::GetForceShowHiddenChats() && (!isStringInFile(filepath_allowed, p_ChatId)) &&
-              (isStringInFile(filepath, p_ChatId) || phone.empty()));
-         //     p_ChatId == "5492983400671-1478691547@g.us" // Grupo
-         //     || p_ChatId == "573156465953@s.whatsapp.net" // Soy
-         //     || p_ChatId == "5491158396035@s.whatsapp.net" // Daniel Lomas
-         // || p_ChatId == "5491141447276@s.whatsapp.net" // Mónica
-         // )
-         // );
+           // AppUtil::GetForceShowMutedChats()
+          (
+            !AppUtil::GetForceShowHiddenChats() &&
+              !isStringInFile(filepath_allow, p_ChatId) &&
+              (
+                isStringInFile(filepath_blk, p_ChatId)
+              )
+          ) ||
+          (
+            !AppUtil::GetForceShowMutedChats() &&
+              !isStringInFile(filepath_allow, p_ChatId) &&
+                phone.empty()
+          );
 }
 
 bool UiModel::Impl::IsChatForceMuted(const std::string& p_ChatId)
