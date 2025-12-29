@@ -7,4 +7,4 @@
 
 #pragma once
 
-#define NCHAT_VERSION "5.12.15-whisper-blocker"
+#define NCHAT_VERSION "5.12.21-whisper-blocker"
